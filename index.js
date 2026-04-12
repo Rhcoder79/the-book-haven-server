@@ -29,9 +29,34 @@ async function run(){
 
      const db=client.db('book_db');
      const productCollection=db.collection('products');
+     const bidsCollection=db.collection('bids');
+     const usersCollection=db.collection('users');
+
+     app.post('/users',async(req,res)=>{
+        const newUser=req.body;
+        const email=req.body.email;
+        const query={email:email};
+        const existingUser=await usersCollection.findOne(query);
+        if(existingUser){
+            res.send({message:'user already exits to need to insert again'})
+        }
+        else{
+            const result=await usersCollection.insertOne(newUser)
+            res.send(result)
+        }
+       // const result=await usersCollection.insertOne(newUser);
+       // res.send(result);
+     })
 
      app.get('/products',async(req,res)=>{
-        const cursor=productCollection.find();
+        //const cursor=productCollection.find().sort({rating: -1}).limit(6);
+        console.log(req.query);
+    const email=req.query.userEmail;
+    const query={}
+    if(email){
+        query.userEmail=email;
+    }
+        const cursor=productCollection.find(query);
         const result=await cursor.toArray();
         res.send(result)
      })
@@ -44,6 +69,7 @@ async function run(){
 
   app.post('/products',async(req,res)=>{
    const newProduct=req.body;
+   console.log(newProduct);
    const result= await productCollection.insertOne(newProduct);
    res.send(result);
 
@@ -68,7 +94,22 @@ async function run(){
     const result= await productCollection.deleteOne(query);
     res.send(result);
   })
-
+//bids related apis
+app.get('/bids',async(req,res)=>{
+    const email=req.query.email;
+    const query={};
+    if(email){
+        query.bidderEmail=email;
+    }
+    const cursor=bidsCollection.find(query);
+    const result=await cursor.toArray();
+    res.send(result);
+})
+app.post('/bids',async(req,res)=>{
+    const newBid=req.body;
+    const result=await bidsCollection.insertOne(newBid);
+    res.send(result);
+})
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
    }
