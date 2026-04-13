@@ -25,7 +25,7 @@ app.get('/',(req,res)=>{
 async function run(){
 
    try{
-     await client.connect();
+    
 
      const db=client.db('book_db');
      const productCollection=db.collection('products');
@@ -74,20 +74,29 @@ async function run(){
    res.send(result);
 
   })
-  app.patch('/products/:id',async(req,res)=>{
-    const id=req.params.id;
-    const updatedProduct=req.body;
-    const query={_id:new ObjectId(id)}
-    const update={
-        $set:{
-            name:updatedProduct.name,
-            price:updatedProduct.price
-        }
+ app.patch('/products/:id', async (req, res) => {
+    const id = req.params.id;
+    const filter = { _id: new ObjectId(id) };
+    const updatedData = req.body; 
 
+    const updateDoc = {
+        $set: {
+            title: updatedData.title,
+            author: updatedData.author,
+            genre: updatedData.genre,
+            rating: updatedData.rating,
+            summary: updatedData.summary,
+            coverImage: updatedData.coverImage
+        },
+    };
+
+    try {
+        const result = await productCollection.updateOne(filter, updateDoc);
+        res.send(result);
+    } catch (error) {
+        res.status(500).send({ message: "Update failed", error });
     }
-    const result=await productCollection.updateOne(query,update)
-    res.send(result)
-  } )
+});
   app.delete('/products/:id',async(req,res)=>{
     const id=req.params.id;
     const query={_id:new ObjectId(id)}
