@@ -1,134 +1,180 @@
 const express = require('express');
 const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const app=express();
-const port=process.env.PORT || 3000;
+const app = express();
+const port = process.env.PORT || 3000;
 
-//MIDDLEWARE
+// MIDDLEWARE
 app.use(cors());
-app.use(express.json())
+app.use(express.json());
 
-//const uri = "mongodb+srv://<db_username>:<db_password>@cluster0.sumux0b.mongodb.net/?appName=Cluster0";
+// MongoDB Connection URI
 const uri = "mongodb+srv://bookDbUser:iIAvSJNCury8TNCb@cluster0.sumux0b.mongodb.net/?appName=Cluster0";
 
 const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
+    serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+    }
 });
 
-app.get('/',(req,res)=>{
+app.get('/', (req, res) => {
     res.send('book heaven server is running')
-})
-async function run(){
-
-   try{
-    
-
-     const db=client.db('book_db');
-     const productCollection=db.collection('products');
-     const bidsCollection=db.collection('bids');
-     const usersCollection=db.collection('users');
-
-     app.post('/users',async(req,res)=>{
-        const newUser=req.body;
-        const email=req.body.email;
-        const query={email:email};
-        const existingUser=await usersCollection.findOne(query);
-        if(existingUser){
-            res.send({message:'user already exits to need to insert again'})
-        }
-        else{
-            const result=await usersCollection.insertOne(newUser)
-            res.send(result)
-        }
-       // const result=await usersCollection.insertOne(newUser);
-       // res.send(result);
-     })
-
-     app.get('/products',async(req,res)=>{
-        //const cursor=productCollection.find().sort({rating: -1}).limit(6);
-        console.log(req.query);
-    const email=req.query.userEmail;
-    const query={}
-    if(email){
-        query.userEmail=email;
-    }
-        const cursor=productCollection.find(query);
-        const result=await cursor.toArray();
-        res.send(result)
-     })
-     app.get('/products/:id',async(req,res)=>{
-        const id=req.params.id;
-        const query={_id:new ObjectId(id)}
-        const result=await productCollection.findOne(query);
-        res.send(result);
-     })
-
-  app.post('/products',async(req,res)=>{
-   const newProduct=req.body;
-   console.log(newProduct);
-   const result= await productCollection.insertOne(newProduct);
-   res.send(result);
-
-  })
- app.patch('/products/:id', async (req, res) => {
-    const id = req.params.id;
-    const filter = { _id: new ObjectId(id) };
-    const updatedData = req.body; 
-
-    const updateDoc = {
-        $set: {
-            title: updatedData.title,
-            author: updatedData.author,
-            genre: updatedData.genre,
-            rating: updatedData.rating,
-            summary: updatedData.summary,
-            coverImage: updatedData.coverImage
-        },
-    };
-
-    try {
-        const result = await productCollection.updateOne(filter, updateDoc);
-        res.send(result);
-    } catch (error) {
-        res.status(500).send({ message: "Update failed", error });
-    }
 });
-  app.delete('/products/:id',async(req,res)=>{
-    const id=req.params.id;
-    const query={_id:new ObjectId(id)}
-    const result= await productCollection.deleteOne(query);
+
+async function run() {
+    try {
+        const db = client.db('book_db');
+        const productCollection = db.collection('products');
+        const bidsCollection = db.collection('bids');
+        const usersCollection = db.collection('users');
+        const commentsCollection = db.collection('comments');
+        //COMMENTS API
+        app.post('/comments', async (req, res) => {
+    const comment = req.body;
+    const result = await commentsCollection.insertOne(comment);
     res.send(result);
-  })
-//bids related apis
-app.get('/bids',async(req,res)=>{
-    const email=req.query.email;
-    const query={};
-    if(email){
-        query.bidderEmail=email;
+});
+
+        // --- USERS API ---
+        app.post('/users', async (req, res) => {
+            const newUser = req.body;
+            const email = req.body.email;
+            const query = { email: email };
+            const existingUser = await usersCollection.findOne(query);
+            if (existingUser) {
+                res.send({ message: 'user already exists' })
+            }
+            else {
+                const result = await usersCollection.insertOne(newUser)
+                res.send(result)
+            }
+        });
+//COMMENT ID
+       app.get('/comments/:bookId', async (req, res) => {
+    const bookId = req.params.bookId;
+    const query = { bookId: bookId };
+    
+    
+    const result = await commentsCollection.find(query).sort({ createdAt: -1 }).toArray();
+    res.send(result);
+});
+        // --- PRODUCTS GET (All & by Email) ---
+        app.get('/products', async (req, res) => {
+            const email = req.query.userEmail;
+            const query = {}
+            if (email) {
+                query.userEmail = email;
+            }
+            const cursor = productCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result)
+        });
+
+        // --- GET SINGLE PRODUCT (Details) ---
+        app.get('/products/:id', async (req, res) => {
+            const id = req.params.id;
+            try {
+                // লজিক: প্রথমে String ID দিয়ে খুঁজবে, না পেলে ObjectId দিয়ে খুঁজবে
+                let query = { _id: id };
+                let result = await productCollection.findOne(query);
+
+                if (!result && ObjectId.isValid(id)) {
+                    query = { _id: new ObjectId(id) };
+                    result = await productCollection.findOne(query);
+                }
+
+                if (!result) {
+                    return res.status(404).send({ error: "Book not found" });
+                }
+                res.send(result);
+            } catch (error) {
+                res.status(500).send({ error: "Server error" });
+            }
+        });
+
+        // --- ADD NEW PRODUCT ---
+        app.post('/products', async (req, res) => {
+            const newProduct = req.body;
+            const result = await productCollection.insertOne(newProduct);
+            res.send(result);
+        });
+
+        // --- UPDATE PRODUCT (PATCH) ---
+        app.patch('/products/:id', async (req, res) => {
+            const id = req.params.id;
+            const updatedData = req.body;
+            try {
+                // লজিক: String ID এবং ObjectId দুইটাই চেক করবে
+                let filter = { _id: id };
+                let existingProduct = await productCollection.findOne(filter);
+
+                if (!existingProduct && ObjectId.isValid(id)) {
+                    filter = { _id: new ObjectId(id) };
+                }
+
+                const updateDoc = {
+                    $set: {
+                        title: updatedData.title,
+                        author: updatedData.author,
+                        genre: updatedData.genre,
+                        rating: updatedData.rating,
+                        summary: updatedData.summary,
+                        coverImage: updatedData.coverImage
+                    },
+                };
+                const result = await productCollection.updateOne(filter, updateDoc);
+                res.send(result);
+            } catch (error) {
+                res.status(400).send({ error: "Update failed" });
+            }
+        });
+
+        // --- DELETE PRODUCT ---
+        app.delete('/products/:id', async (req, res) => {
+            const id = req.params.id;
+            try {
+                let query = { _id: id };
+                let existingProduct = await productCollection.findOne(query);
+
+                if (!existingProduct && ObjectId.isValid(id)) {
+                    query = { _id: new ObjectId(id) };
+                }
+
+                const result = await productCollection.deleteOne(query);
+                res.send(result);
+            } catch (error) {
+                res.status(400).send({ error: "Delete failed" });
+            }
+        });
+
+        // --- BIDS API ---
+        app.get('/bids', async (req, res) => {
+            const email = req.query.email;
+            const query = {};
+            if (email) {
+                query.bidderEmail = email;
+            }
+            const cursor = bidsCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+        app.post('/bids', async (req, res) => {
+            const newBid = req.body;
+            const result = await bidsCollection.insertOne(newBid);
+            res.send(result);
+        });
+
+        await client.db("admin").command({ ping: 1 });
+        console.log("Connected to MongoDB Successfully!");
+    } catch (error) {
+        console.error(error);
     }
-    const cursor=bidsCollection.find(query);
-    const result=await cursor.toArray();
-    res.send(result);
-})
-app.post('/bids',async(req,res)=>{
-    const newBid=req.body;
-    const result=await bidsCollection.insertOne(newBid);
-    res.send(result);
-})
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-   }
-   finally{
-
-   } 
-
 }
-run().catch(console.dir)
+run().catch(console.dir);
 
-app.listen(port,()=>{
-    console.log(`book heaven is hello running on port: ${port}`)
-})
+app.listen(port, () => {
+    console.log(`Server is running on port: ${port}`)
+});
