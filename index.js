@@ -179,7 +179,7 @@ async function run() {
         await client.db("admin").command({ ping: 1 });
         console.log("Connected to MongoDB Successfully!");
     } catch (error) {
-        console.error(error);
+       
     }
 }
 run().catch(console.dir);
