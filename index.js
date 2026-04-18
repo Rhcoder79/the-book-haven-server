@@ -183,7 +183,7 @@ async function run() {
             res.send(result);
         });
 
-        await client.db("admin").command({ ping: 1 });
+      //  await client.db("admin").command({ ping: 1 });
         console.log("Connected to MongoDB Successfully!");
     } catch (error) {
         console.error(error);
@@ -194,3 +194,5 @@ run().catch(console.dir);
 app.listen(port, () => {
     console.log(`Server is running on port: ${port}`)
 });
+
+module.exports = app;
