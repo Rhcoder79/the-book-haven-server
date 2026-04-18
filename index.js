@@ -51,6 +51,15 @@ async function run() {
                 res.send(result)
             }
         });
+        //comment 
+        app.get('/comments', async (req, res) => {
+    try {
+        const result = await commentsCollection.find().toArray();
+        res.send(result);
+    } catch (error) {
+        res.status(500).send({ message: "Error fetching all comments", error });
+    }
+});
 //COMMENT ID
        app.get('/comments/:bookId', async (req, res) => {
     const bookId = req.params.bookId;
@@ -60,7 +69,7 @@ async function run() {
     const result = await commentsCollection.find(query).sort({ createdAt: -1 }).toArray();
     res.send(result);
 });
-        // --- PRODUCTS GET (All & by Email) ---
+      
         app.get('/products', async (req, res) => {
             const email = req.query.userEmail;
             const query = {}
@@ -76,7 +85,7 @@ async function run() {
         app.get('/products/:id', async (req, res) => {
             const id = req.params.id;
             try {
-                // লজিক: প্রথমে String ID দিয়ে খুঁজবে, না পেলে ObjectId দিয়ে খুঁজবে
+              
                 let query = { _id: id };
                 let result = await productCollection.findOne(query);
 
@@ -101,12 +110,12 @@ async function run() {
             res.send(result);
         });
 
-        // --- UPDATE PRODUCT (PATCH) ---
+        
         app.patch('/products/:id', async (req, res) => {
             const id = req.params.id;
             const updatedData = req.body;
             try {
-                // লজিক: String ID এবং ObjectId দুইটাই চেক করবে
+              
                 let filter = { _id: id };
                 let existingProduct = await productCollection.findOne(filter);
 
@@ -131,7 +140,7 @@ async function run() {
             }
         });
 
-        // --- DELETE PRODUCT ---
+        
         app.delete('/products/:id', async (req, res) => {
             const id = req.params.id;
             try {
