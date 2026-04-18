@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -5,12 +6,18 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // MIDDLEWARE
-app.use(cors());
+app.use(cors({
+    origin: [
+        'http://localhost:5173', 
+        'https://book-heaven-4eb51.web.app',
+        'https://book-heaven-4eb51.firebaseapp.com'
+    ],
+    credentials: true
+}));
 app.use(express.json());
 
 // MongoDB Connection URI
-const uri = "mongodb+srv://bookDbUser:iIAvSJNCury8TNCb@cluster0.sumux0b.mongodb.net/?appName=Cluster0";
-
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.sumux0b.mongodb.net/?appName=Cluster0`;
 const client = new MongoClient(uri, {
     serverApi: {
         version: ServerApiVersion.v1,
