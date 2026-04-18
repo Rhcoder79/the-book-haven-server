@@ -7,13 +7,14 @@ const port = process.env.PORT || 3000;
 
 // MIDDLEWARE
 app.use(cors({
-    origin: [
-        'http://localhost:5173', 
-        'https://book-heaven-4eb51.web.app',
-        'https://book-heaven-4eb51.firebaseapp.com'
-    ],
-    credentials: true
+  origin: [
+    "http://localhost:5173",
+    "https://book-heaven-4eb51.web.app",
+    "https://book-heaven-4eb51.firebaseapp.com"
+  ],
+  credentials: true
 }));
+
 app.use(express.json());
 
 // MongoDB Connection URI
